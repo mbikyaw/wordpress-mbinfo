@@ -1,0 +1,6 @@
+export MYSQL_ROOT=wordpress
+export MYSQL_ROOT_PASS=wordpressmbi
+export MYSQL_USER=wordpress
+export MYSQL_USER_PASS=wordpressmbi
+export WP_ADMIN=admin
+export WP_ADMIN_PASS=password

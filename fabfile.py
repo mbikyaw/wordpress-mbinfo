@@ -116,16 +116,17 @@ def prod():
     apply_def_setup()
 
 @task
-def staging():
+def staging(name='kt-w1'):
     """
     Work on staging environment
+    :param name subdomain name
     """
     env.settings = 'staging'
-    env.project_name = 'kt-w2'
+    env.project_name = name
     env.hosts = ['kt.mbi.nus.edu.sg']
     server_credential(env.settings)
     env_ubuntu()
-    env.wp.db_name = 'kt-w2'
+    env.wp.db_name = env.project_name
     apply_def_setup()
 
 
@@ -203,13 +204,15 @@ def setup_virtual_host(name):
     :param name: name of virtual host
     """
     require('settings', provided_by=[prod, staging, dev])
+    doc = os.path.join(env.server.doc, name)
     context = {
         'port': 80,
         'server_name': name + '.mbi.nus.edu.sg',
-        'document_root': os.path.join(env.server.doc, name)
+        'document_root': doc
     }
-    conf_fn = os.path.join(env.path, name)
-    files.upload_template('vhost.conf.template', conf_fn, context)
+    conf_fn = name + '.conf'
+    files.upload_template('vhost.conf.template', '/etc/apache2/sites-available/' + conf_fn, context, use_sudo=True)
+    run('mkdir -p %s' % doc)
     sudo("a2ensite %s" % conf_fn)
     sudo('service apache2 restart')
 
@@ -274,7 +277,9 @@ def shiva_wordpress():
     :return:
     """
     require('settings', provided_by=[prod, staging, dev])
-    run('wp db drop')
+    with cd(env.path):
+        if files.exists('wp-config.php'):
+            run('wp db drop')
     run("rm -rf %(path)s" % env)
 
 

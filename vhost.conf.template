@@ -1,0 +1,24 @@
+#
+# Template file managed for Virtual Host
+#
+
+<VirtualHost *:%(port)d>
+    ServerAdmin webmaster@%(server_name)s
+    DocumentRoot %(document_root)s
+    ServerAlias %(server_name)s
+
+    ErrorLog ${APACHE_LOG_DIR}/%(server_name)s-error_log
+    CustomLog ${APACHE_LOG_DIR}/%(server_name)s-access_log common
+
+    <Directory %(document_root)s>
+        <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.php$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.php [L]
+        </IfModule>
+    </Directory>
+
+</VirtualHost>

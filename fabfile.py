@@ -13,6 +13,7 @@
 import os, sys, yaml
 import time
 from fabric.api import *
+from fabric.contrib import files
 from utils import AttributeDict
 
 env.hosts = ['localhost']
@@ -182,6 +183,35 @@ def restore_database():
     local('rm -f %(db_name)s.sql' % env)
 
 
+@task
+def clone_production_to_staging():
+    """
+    Clone production web site to local
+    """
+    prod()
+    download_source()
+    prev_pn = env.project_name
+    staging()
+    local("mv %s.zip %s.zip" %(prev_pn, env.project_name))
+    restore_source()
+
+
+@task
+def setup_virtual_host(name):
+    """
+    Setup virtual host
+    :param name: name of virtual host
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    context = {
+        'port': 80,
+        'server_name': name + '.mbi.nus.edu.sg',
+        'document_root': os.path.join(env.server.doc, name)
+    }
+    conf_fn = os.path.join(env.path, name)
+    files.upload_template('vhost.conf.template', conf_fn, context)
+    sudo("a2ensite %s" % conf_fn)
+    sudo('service apache2 restart')
 
 """
 Utilities
@@ -248,59 +278,63 @@ def shiva_wordpress():
     run("rm -rf %(path)s" % env)
 
 
-def get_wordpress():
+@task
+def download_source():
     """
-    Download wordpress
+    Download remote source code to local.
     :return:
     """
     require('settings', provided_by=[prod, staging, dev])
-    print("Downloading and installing Wordpress...")
-    sudo("mkdir -p %(path)s" % env)
+    run("rm -f /tmp/%(project_name)s.zip && zip -r /tmp/%(project_name)s.zip %(path)s" % env)
     with cd(env.path):
-        run("curl -s %(wp_tarball)s | tar xzf -" % env)
-        run('mv wordpress/* .')
-        run('rmdir wordpress')
-    print("Done.")
+        run()
+    get("/tmp/%(project_name)s.zip" % env, "./%(project_name)s.zip" % env)
+    run('rm -f /tmp/%(project_name)s.zip' % env)
 
 
-def install_plugin(name, version='latest'):
-    try:
-        from lxml.html import parse
-        from lxml.cssselect import CSSSelector
-    except ImportError:
-        print("I need lxml to do this")
-        exit()
+@task
+def restore_source():
+    """
+    Deploy prebuild source code to server.
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    put('%(project_name)s.zip' % env, '%(path)s/%(project_name)s.zip', env)
+    with cd(env.path):
+        run('unzip -o ./%(project_name)s.zip' % env)
 
-    print("Looking for %s..." % name)
 
-    url = "http://wordpress.org/extend/plugins/%s/" % name
-    p = parse("%sdownload/" % url)
-    sel = CSSSelector('.block-content .unmarked-list a')
-    dload_elems = sel(p)
+@task
+def deploy_mbinfo_from_mac():
+    """
+    Deploy prebuild source code to server.
 
-    if not dload_elems:
-        print("Can't find plugin %s" % name)
-        exit()
+    Download source:
+      cd ~/Sites
+      zip -r /tmp/mbinfo_wordpress.zip wordpress
+      mysqldump  --user=root --password=wordpressmbi wordpress | gzip -9 > /tmp/wordpress.sql.gz
+      scp wordpress@mbinfo.mbi.nus.edu.sg:/tmp/mbinfo_wordpress.zip ./
+      cp mbinfo.mbi.nus.edu.sg:/tmp/wordpress.sql.gz ./
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    put('mbinfo_wordpress.zip', '%(project_name)s.zip' % env)
+    run('unzip -q -o %(project_name)s.zip' % env)
+    run('mv wordpress %(path)s' % env)
+    put('wordpress.sql.gz', os.path.join(env.path,'wordpress.sql.gz'))
+    with cd(env.path):
+        # change db name
+        run('sed -i "s/%s/%s/" wp-config.php' % ("'DB_NAME', 'wordpress", "'DB_NAME', '" + env.wp.db_name))
+        run('sed -i "s/%s/%s/" wp-config.php' % ("'DB_USER', 'wordpress", "'DB_USER', '" + env.server.mysql_user))
+        run('sed -i "s/%s/%s/" wp-config.php' % ("'DB_PASSWORD', 'wordpressmbi",
+                                                 "'DB_PASSWORD', '" + env.server.mysql_user_pass))
+        run('gzip -d wordpress.sql.gz')
+        run('wp db create')
+        run('wp db import wordpress.sql')
+        run('rm wordpress.sql')
+        run('wp option set siteurl %s' % env.wp.url)
+        run('wp option set home %s' % env.wp.url)
+        run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s.mbi.nus.edu.sg' --skip-columns=guid" %
+            env.project_name)
 
-    #first is latest
-    if version == 'latest':
-        plugin_zip = dload_elems[0].attrib['href']
-        version = dload_elems[0].text
-    else:
-        plugin_zip = None
-        for e in dload_elems:
-            if e.text == 'version':
-                plugin_zip = e.attrib['href']
-                break
 
-    if not plugin_zip:
-        print("Can't find plugin %s" % name)
-        exit()
-    else:
-        print("Found version %s of %s, installing..." % (version, name) )
-        with cd(env.path + "/wp-content/plugins"):
-            env.run('curl -s %s -o %s.%s.zip' % (plugin_zip, name, version) )
-            env.run('unzip -n %s.%s.zip' % (name, version) )
-
-        if raw_input("Read instructions for %s? [Y|n]" % name) in ("","Y"):
-            subprocess.call(['open', url])

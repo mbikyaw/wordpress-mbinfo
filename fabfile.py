@@ -253,6 +253,20 @@ def install_wordpress():
         run('wp db create')
         run("wp core install --url=%(url)s --title=%(title)s --admin_user=%(wp_admin)s "
             "--admin_password=%(wp_admin_pass)s --admin_email=%(admin_email)s" % env.wp)
+        apply_zephyr()
+        run('wp plugin install kcite')
+        run('wp plugin activate kcite')
+    print('Wordpress installed.')
+
+
+@task
+def apply_zephyr():
+    """
+    Install wordpress
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    with cd(env.path):
         with cd('wp-content/themes'):
             put('Zephyr.zip', './')
             run('wp theme install Zephyr.zip')
@@ -265,9 +279,7 @@ def install_wordpress():
                 run('wp plugin install revslider.zip')
         run('wp theme activate Zephyr-child')
         run('wp plugin activate revslider')
-        run('wp plugin install kcite')
-        run('wp plugin activate kcite')
-    print('Wordpress installed.')
+    print('Zephyr theme applied.')
 
 
 @task
@@ -319,15 +331,17 @@ def deploy_mbinfo_from_mac():
       zip -r /tmp/mbinfo_wordpress.zip wordpress
       mysqldump  --user=root --password=wordpressmbi wordpress | gzip -9 > /tmp/wordpress.sql.gz
       scp wordpress@mbinfo.mbi.nus.edu.sg:/tmp/mbinfo_wordpress.zip ./
-      cp mbinfo.mbi.nus.edu.sg:/tmp/wordpress.sql.gz ./
+      scp mbinfo.mbi.nus.edu.sg:/tmp/wordpress.sql.gz ./
     :return:
     """
     require('settings', provided_by=[prod, staging, dev])
     put('mbinfo_wordpress.zip', '%(project_name)s.zip' % env)
     run('unzip -q -o %(project_name)s.zip' % env)
     run('mv wordpress %(path)s' % env)
+    sudo('chown -R %s:%s %s' % (env.server.user, env.server.group, env.path))
     put('wordpress.sql.gz', os.path.join(env.path,'wordpress.sql.gz'))
     with cd(env.path):
+        run('chmod -R g+w wp-content/uploads/')
         # change db name
         run('sed -i "s/%s/%s/" wp-config.php' % ("'DB_NAME', 'wordpress", "'DB_NAME', '" + env.wp.db_name))
         run('sed -i "s/%s/%s/" wp-config.php' % ("'DB_USER', 'wordpress", "'DB_USER', '" + env.server.mysql_user))
@@ -339,6 +353,9 @@ def deploy_mbinfo_from_mac():
         run('rm wordpress.sql')
         run('wp option set siteurl %s' % env.wp.url)
         run('wp option set home %s' % env.wp.url)
+        run('wp core update')
+        run('wp theme update --all')
+        run('wp plugin update --all')
         run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s.mbi.nus.edu.sg' --skip-columns=guid" %
             env.project_name)
 

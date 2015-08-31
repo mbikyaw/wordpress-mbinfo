@@ -85,7 +85,7 @@ def apply_def_setup():
     :return:
     """
     env.path = os.path.join(env.server.doc, env.project_name)
-    env.wp.url = env.hosts[0] + '/' + env.project_name + '/'
+    env.wp.url = env.hosts[0] + '/'
 
 
 def server_credential(ev='prod'):
@@ -138,6 +138,7 @@ def dev():
     env_mac()
     env.settings = 'dev'
     env.hosts = ['localhost']
+    env.path = '/Users/mbikyaw/PycharmProjects/mbinfo/wordpress'
     server_credential('dev')
 
 
@@ -266,12 +267,12 @@ def apply_zephyr():
     :return:
     """
     require('settings', provided_by=[prod, staging, dev])
+    put('./Zephyr.zip', os.path.join(env.path, 'wp-content/themes/'))
+    put('./Zephyr-child.zip', os.path.join(env.path, 'wp-content/themes/'))
     with cd(env.path):
         with cd('wp-content/themes'):
-            put('Zephyr.zip', './')
             run('wp theme install Zephyr.zip')
             run('rm Zephyr.zip')
-            put('Zephyr-child.zip', './')
             run('wp theme install Zephyr-child.zip')
             run('rm Zephyr-child.zip')
             with cd('Zephyr/vendor/plugins/'):
@@ -337,7 +338,7 @@ def deploy_mbinfo_from_mac():
     require('settings', provided_by=[prod, staging, dev])
     put('mbinfo_wordpress.zip', '%(project_name)s.zip' % env)
     run('unzip -q -o %(project_name)s.zip' % env)
-    run('mv wordpress %(path)s' % env)
+    run('mv ./wordpress %(path)s' % env)
     sudo('chown -R %s:%s %s' % (env.server.user, env.server.group, env.path))
     put('wordpress.sql.gz', os.path.join(env.path,'wordpress.sql.gz'))
     with cd(env.path):
@@ -356,7 +357,8 @@ def deploy_mbinfo_from_mac():
         run('wp core update')
         run('wp theme update --all')
         run('wp plugin update --all')
-        run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s.mbi.nus.edu.sg' --skip-columns=guid" %
-            env.project_name)
+        if not 'mbinfo' == env.project_name:
+            run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s.mbi.nus.edu.sg' --skip-columns=guid" %
+                env.project_name)
 
 

@@ -10,7 +10,7 @@
 #   fab production hello
 #
 
-import os, sys, yaml
+import os, sys, yaml, re
 import time
 from fabric.api import *
 from fabric.contrib import files
@@ -79,15 +79,6 @@ def env_ubuntu():
     env.server.group = 'www-data'
 
 
-def apply_def_setup():
-    """
-    Apply default WordPress settings base on base configuration.
-    :return:
-    """
-    env.path = os.path.join(env.server.doc, env.project_name)
-    env.wp.url = env.hosts[0] + '/'
-
-
 def server_credential(ev='prod'):
     """
     Set MYSQL credential
@@ -107,13 +98,14 @@ def prod():
     """
     Work on production environment
     """
-    env_mac()
+    env_ubuntu()
     env.settings = 'prod'
     server_credential(env.settings)
-    env.hosts = ['mbinfo.mbi.nus.edu.sg']
+    env.hosts = ['kt.mbi.nus.edu.sg']
     env.path = os.path.join(env.server.doc, env.project_name)
-    env.wp.db_name = 'wordpress'
-    apply_def_setup()
+    env.wp.db_name = env.project_name
+    env.wp.url = env.hosts[0] + '/'
+
 
 @task
 def staging(name='kt-w1'):
@@ -127,7 +119,8 @@ def staging(name='kt-w1'):
     server_credential(env.settings)
     env_ubuntu()
     env.wp.db_name = env.project_name
-    apply_def_setup()
+    env.path = os.path.join(env.server.doc, env.project_name)
+    env.wp.url = env.hosts[0] + '/'
 
 
 @task
@@ -140,6 +133,7 @@ def dev():
     env.hosts = ['localhost']
     env.path = '/Users/mbikyaw/PycharmProjects/mbinfo/wordpress'
     server_credential('dev')
+    env.wp.url = 'http://localhost:8083/'
 
 
 @task
@@ -151,12 +145,23 @@ def download_database():
     :return: the download file name in local.
     """
     prod()
-    run("mysqldump  --user=%s --password=%s %s | gzip -9 > /tmp/%s.sql.gz" %
+    run("mysqldump -q --user=%s --password=%s %s | gzip -9 > /tmp/%s.sql.gz" %
         (env.server.mysql_root, env.server.mysql_root_pass, env.wp.db_name, env.wp.db_name))
     fn = '%(db_name)s.sql.gz' % env.wp
     get("/tmp/%(db_name)s.sql.gz" % env.wp, fn)
     run("rm /tmp/%(db_name)s.sql.gz" % env.wp)
     return fn
+
+
+@task
+def deploy():
+    """
+    Deploy source code.
+    :return:
+    """
+    require('settings', provided_by=[prod, staging])
+    fn = 'wp-content/plugins/better-anchor-links/css/mwm-aal.css'
+    put(os.path.join('wordpress', fn), os.path.join(env.path, fn))
 
 
 @task
@@ -173,6 +178,7 @@ def backup_database(fresh_download=True):
     run("rm %(db_name)s.sql.gz" % env.wp)
 
 
+@task
 def restore_database():
     """
     Restore database from backup
@@ -180,9 +186,17 @@ def restore_database():
     :return:
     """
     download_database()
-    local('gzip -d %(db_name)s.sql.gz' % env)
-    local('mysql --user=${MYSQL_ROOT} --password=${MYSQL_ROOT_PASS} %(db_name)s < %(db_name)s.sql' % env)
-    local('rm -f %(db_name)s.sql' % env)
+    fn = "%(db_name)s.sql" % env.wp
+    local('gzip -d %s.gz' % fn)
+    dev()
+    with(cd(env.path)):
+        run("wp db drop --yes")
+        run("wp db create")
+        local('mysql -q --user=%s --password=%s %s < %s' %
+              (env.server.mysql_root, env.server.mysql_root_pass, env.wp.db_name, fn))
+        run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s' --skip-columns=guid" %
+            re.sub(r"/$", '', env.wp.url))
+    local('rm -f %s' % fn)
 
 
 @task
@@ -216,10 +230,6 @@ def setup_virtual_host(name):
     run('mkdir -p %s' % doc)
     sudo("a2ensite %s" % conf_fn)
     sudo('service apache2 restart')
-
-"""
-Utilities
-"""
 
 
 def wp_cli():
@@ -296,13 +306,12 @@ def shiva_wordpress():
     run("rm -rf %(path)s" % env)
 
 
-@task
 def download_source():
     """
-    Download remote source code to local.
+    Download production code to local.
     :return:
     """
-    require('settings', provided_by=[prod, staging, dev])
+    require('settings', provided_by=[staging, dev])
     run("rm -f /tmp/%(project_name)s.zip && zip -r /tmp/%(project_name)s.zip %(path)s" % env)
     with cd(env.path):
         run()

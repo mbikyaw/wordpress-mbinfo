@@ -22,9 +22,16 @@ get_header();
             <?php do_action( 'us_before_single' ) ?>
             <section class="l-section">
             <?php
+            global $post;
             require_once WP_PLUGIN_DIR . '/mbinfo-figure/mbinfo.php';
             $mbinfo = new Mbinfo();
-            echo $mbinfo->render_figure_copyright([], '');
+
+            $attr = [
+                'id' => $post->post_name,
+                'title' => $post->post_title
+            ];
+
+            echo $mbinfo->render_figure_copyright($attr, $post->post_content);
             ?>
             </section>
             <?php do_action( 'us_after_single' ) ?>

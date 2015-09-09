@@ -26,7 +26,10 @@ get_header();
 
             global $post;
             if (current_user_can('edit_pages')) {
-                echo '<input type="file" name="mbinfo-figure"/>';
+                $js_fn = plugins_url('/mbinfo-figure/js/uploader.js');
+                echo '<div id="uploader-root"></div>';
+                echo '<script src="https://apis.google.com/js/client.js"></script>';
+                echo '<script src="' . $js_fn . '""></script>';
             }
             $attr = [
                 'id' => $post->post_name,

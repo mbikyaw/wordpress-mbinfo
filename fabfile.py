@@ -154,14 +154,43 @@ def download_database():
 
 
 @task
+def publish_mbinfo_figure():
+    """
+    Zip mbinfo-figure plugin for distribution
+    :return:
+    """
+    local('cd wordpress/wp-content/plugins; zip -q -x .git -r mbinfo-figure.zip mbinfo-figure')
+    local('mv wordpress/wp-content/plugins/mbinfo-figure.zip ./')
+
+
+@task
+def install_mbinfo_figure():
+    """
+    Install mbinfo-figure plugin
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    with cd(env.path):
+        put('mbinfo-figure.zip', 'mbinfo-figure.zip')
+        if files.exists('wp-content/plugins/mbinfo-figure'):
+            run('wp plugin update mbinfo-figure mbinfo-figure.zip')
+        else:
+            run('wp plugin install mbinfo-figure.zip --activate')
+
+
+@task
 def deploy():
     """
     Deploy source code.
     :return:
     """
     require('settings', provided_by=[prod, staging])
-    fn = 'wp-content/plugins/better-anchor-links/css/mwm-aal.css'
-    put(os.path.join('wordpress', fn), os.path.join(env.path, fn))
+    fns = ['wp-content/plugins/better-anchor-links/css/mwm-aal.css',
+           'wp-content/themes/Zephyr-child/functions.php',
+           'wp-content/themes/Zephyr-child/page-topic-home.php',
+           'wp-content/themes/Zephyr-child/single-figure.php']
+    for fn in fns:
+        put(os.path.join('wordpress', fn), os.path.join(env.path, fn))
 
 
 @task

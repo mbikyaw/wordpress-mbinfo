@@ -19,7 +19,7 @@ get_header();
 
         <div class="l-content g-html">
             <?php
-            require_once WP_PLUGIN_DIR . '/mbinfo-figure/mbinfo.php';
+            require_once WP_PLUGIN_DIR . '/mbinfo-figure/includes/mbinfo.php';
 
             do_action( 'us_before_single' );
             echo '<section class="l-section">';
@@ -31,9 +31,11 @@ get_header();
                 echo '<script src="https://apis.google.com/js/client.js"></script>';
                 echo '<script src="' . $js_fn . '""></script>';
             }
+            $date = get_post_meta( $post->ID, Mbinfo::$ATTR_DATE, true );
             $attr = [
                 'id' => $post->post_name,
-                'title' => $post->post_title
+                'title' => $post->post_title,
+                'created' => $date
             ];
 
             $mbinfo = new Mbinfo();

@@ -172,10 +172,7 @@ def install_mbinfo_figure():
     require('settings', provided_by=[prod, staging, dev])
     with cd(env.path):
         put('mbinfo-figure.zip', 'mbinfo-figure.zip')
-        if files.exists('wp-content/plugins/mbinfo-figure'):
-            run('wp plugin update mbinfo-figure mbinfo-figure.zip')
-        else:
-            run('wp plugin install mbinfo-figure.zip --activate')
+        run('wp plugin install mbinfo-figure.zip --force --activate')
 
 
 @task

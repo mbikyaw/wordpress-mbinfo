@@ -34,7 +34,7 @@ get_header();
             }
             $date = get_post_meta( $post->ID, Mbinfo::$ATTR_DATE, true );
             $attr = [
-                'id' => $post->post_name,
+                'name' => $post->post_name,
                 'title' => $post->post_title,
                 'created' => $date
             ];

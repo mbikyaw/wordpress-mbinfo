@@ -137,7 +137,7 @@ def dev():
 
 
 @task
-def download_database():
+def download_database(use_wp=False):
     """
     Dump production database and restore into local.
     Remote and local login user must set MYSQL_USER and MYSQL_PASS properly.
@@ -145,11 +145,19 @@ def download_database():
     :return: the download file name in local.
     """
     prod()
-    run("mysqldump -q --user=%s --password=%s %s | gzip -9 > /tmp/%s.sql.gz" %
-        (env.server.mysql_root, env.server.mysql_root_pass, env.wp.db_name, env.wp.db_name))
     fn = '%(db_name)s.sql.gz' % env.wp
-    get("/tmp/%(db_name)s.sql.gz" % env.wp, fn)
-    run("rm /tmp/%(db_name)s.sql.gz" % env.wp)
+    if use_wp:
+        with(cd(env.path)):
+            print("Running export")
+            run("wp db export %s.sql" % env.wp.db_name)
+            run("gzip -9 %s" % env.wp.db_name)
+            get(fn, fn)
+            run("rm %s" % fn)
+    else:
+        run("mysqldump -q --user=%s --password=%s %s | gzip -9 > %s.sql.gz" %
+            (env.server.mysql_root, env.server.mysql_root_pass, env.wp.db_name, env.wp.db_name))
+        get(fn, fn)
+        run("rm %s" % fn)
     return fn
 
 
@@ -191,7 +199,7 @@ def deploy():
 
 
 @task
-def backup_database(fresh_download=True):
+def backup_database(fresh_download=False):
     """
     Backup production database
     Require Google gcloud command line auth setup.
@@ -317,6 +325,21 @@ def apply_zephyr():
         run('wp theme activate Zephyr-child')
         run('wp plugin activate revslider')
     print('Zephyr theme applied.')
+
+
+@task
+def update_zephyr():
+    """
+    Install wordpress
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    put('./Zephyr.zip', os.path.join(env.path, 'wp-content/themes/'))
+    with cd(env.path):
+        with cd('wp-content/themes'):
+            run('wp theme install Zephyr.zip --force')
+            run('rm Zephyr.zip')
+    print('Zephyr theme updated.')
 
 
 @task

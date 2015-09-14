@@ -25,9 +25,10 @@ get_header();
             echo '<section class="l-section">';
 
             global $post;
-            if (current_user_can('edit_pages')) {
+            $can_edit = current_user_can('edit_pages');
+            if ($can_edit) {
                 $js_fn = plugins_url('/mbinfo-figure/js/uploader.js');
-                echo '<div id="uploader-root"></div>';
+
                 echo '<script src="https://apis.google.com/js/client.js"></script>';
                 echo '<script src="' . $js_fn . '""></script>';
             }
@@ -41,6 +42,9 @@ get_header();
             $mbinfo = new Mbinfo();
             echo $mbinfo->render_figure_copyright($attr, $post->post_content);
 
+            if ($can_edit) {
+                echo '<div id="uploader-root" style="margin: 8px 0;"></div>';
+            }
             echo '</section>';
             do_action( 'us_after_single' );
             ?>

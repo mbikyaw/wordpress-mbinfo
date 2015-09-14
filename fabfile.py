@@ -191,6 +191,7 @@ def deploy():
     """
     require('settings', provided_by=[prod, staging])
     fns = ['wp-content/plugins/better-anchor-links/css/mwm-aal.css',
+           'wp-content/themes/Zephyr/framework/templates/widgets/search.php',
            'wp-content/themes/Zephyr-child/functions.php',
            'wp-content/themes/Zephyr-child/page-topic-home.php',
            'wp-content/themes/Zephyr-child/single-figure.php']

@@ -1,0 +1,5 @@
+cd /var/www/html/mbinfo
+FN=mbinfo-`date +%Y-%m-%d`.sql
+wp db export $FN
+gzip $FN
+gsutil mv $FN.gz gs://mbinfo-backup/mbinfo/db/

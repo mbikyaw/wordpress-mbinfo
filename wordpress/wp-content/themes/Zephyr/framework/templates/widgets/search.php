@@ -30,13 +30,6 @@ $form_template_vars = array(
 		),
 	),
 );
-if (get_post_type() == 'figure') {
-	$form_template_vars['fields']['t'] = array(
-		'type' => 'hidden',
-		'name' => 'post_type',
-		'value' => 'figure'
-	);
-}
 if ( $layout == 'popup' ) {
 	$form_template_vars['end_html'] = '<div class="w-search-close"></div>';
 }

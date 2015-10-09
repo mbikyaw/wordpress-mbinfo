@@ -172,6 +172,16 @@ def publish_mbinfo_figure():
 
 
 @task
+def publish_mbinfo_pinfo():
+    """
+    Zip mbinfo-figure plugin for distribution
+    :return:
+    """
+    local('cd wordpress/wp-content/plugins; zip -q -X -x .git -r mbinfo-pinfo.zip mbinfo-pinfo')
+    local('mv wordpress/wp-content/plugins/mbinfo-pinfo.zip ./')
+
+
+@task
 def publish_mbinfo_frontend():
     """
     Zip mbinfo-figure plugin for distribution
@@ -192,6 +202,17 @@ def install_mbinfo_figure():
         put('mbinfo-figure.zip', 'mbinfo-figure.zip')
         run('wp plugin install mbinfo-figure.zip --force --activate')
 
+
+@task
+def install_mbinfo_pinfo():
+    """
+    Install mbinfo-figure plugin
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    with cd(env.path):
+        put('mbinfo-pinfo.zip', 'mbinfo-pinfo.zip')
+        run('wp plugin install mbinfo-pinfo.zip --force --activate')
 
 
 @task

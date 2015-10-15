@@ -238,6 +238,7 @@ def deploy():
            'wp-content/themes/Zephyr/framework/templates/widgets/search.php',
            'wp-content/themes/Zephyr-child/functions.php',
            'wp-content/themes/Zephyr-child/page-topic-home.php',
+           'wp-content/themes/Zephyr-child/page-figure-list.php',
            'wp-content/themes/Zephyr-child/single-figure.php']
     for fn in fns:
         put(os.path.join('wordpress', fn), os.path.join(env.path, fn))

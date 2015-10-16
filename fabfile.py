@@ -94,6 +94,20 @@ def server_credential(ev='prod'):
 
 
 @task
+def kt():
+    """
+    Work on production environment
+    """
+    env_ubuntu()
+    env.settings = 'kt'
+    server_credential(env.settings)
+    env.hosts = ['kt.mbi.nus.edu.sg']
+    env.path = os.path.join(env.server.doc, env.project_name)
+    env.wp.db_name = env.project_name
+    env.wp.url = env.hosts[0] + '/'
+
+
+@task
 def prod():
     """
     Work on production environment
@@ -101,8 +115,8 @@ def prod():
     env_ubuntu()
     env.settings = 'prod'
     server_credential(env.settings)
-    env.hosts = ['kt.mbi.nus.edu.sg']
-    env.path = os.path.join(env.server.doc, env.project_name)
+    env.hosts = ['107.167.183.230']
+    env.path = '/var/www/html'
     env.wp.db_name = env.project_name
     env.wp.url = env.hosts[0] + '/'
 
@@ -137,7 +151,7 @@ def dev():
 
 
 @task
-def download_database(use_wp=False):
+def download_database(use_wp=True):
     """
     Dump production database and restore into local.
     Remote and local login user must set MYSQL_USER and MYSQL_PASS properly.
@@ -239,6 +253,7 @@ def deploy():
            'wp-content/themes/Zephyr-child/functions.php',
            'wp-content/themes/Zephyr-child/page-topic-home.php',
            'wp-content/themes/Zephyr-child/page-figure-list.php',
+           'wp-content/themes/Zephyr-child/page-protein.php',
            'wp-content/themes/Zephyr-child/single-figure.php']
     for fn in fns:
         put(os.path.join('wordpress', fn), os.path.join(env.path, fn))

@@ -196,6 +196,16 @@ def publish_mbinfo_pinfo():
 
 
 @task
+def publish_mbinfo_video():
+    """
+    Zip mbinfo-video plugin for distribution
+    :return:
+    """
+    local('cd wordpress/wp-content/plugins; zip -q -X -x .git -r mbinfo-video.zip mbinfo-video')
+    local('mv wordpress/wp-content/plugins/mbinfo-video.zip ./')
+
+
+@task
 def publish_mbinfo_frontend():
     """
     Zip mbinfo-figure plugin for distribution
@@ -227,6 +237,18 @@ def install_mbinfo_pinfo():
     with cd(env.path):
         put('mbinfo-pinfo.zip', 'mbinfo-pinfo.zip')
         run('wp plugin install mbinfo-pinfo.zip --force --activate')
+
+
+@task
+def install_mbinfo_video():
+    """
+    Install mbinfo-figure plugin
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    with cd(env.path):
+        put('mbinfo-video.zip', 'mbinfo-video.zip')
+        run('wp plugin install mbinfo-video.zip --force --activate')
 
 
 @task
@@ -277,7 +299,8 @@ def backup_database(fresh_download=False):
 def restore_database():
     """
     Restore database from backup
-    Local must already create database;
+    Check out available database backups:
+    gsutil ls gs://mbinfo-backup/mbinfo/db/
     :return:
     """
     download_database()
@@ -289,7 +312,7 @@ def restore_database():
         run("wp db create")
         local('mysql -q --user=%s --password=%s %s < %s' %
               (env.server.mysql_root, env.server.mysql_root_pass, env.wp.db_name, fn))
-        run("wp search-replace 'http://mbinfo.mbi.nus.edu.sg' 'http://%s' --skip-columns=guid" %
+        run("wp search-replace 'http://107.167.183.230' 'http://%s' --skip-columns=guid" %
             re.sub(r"/$", '', env.wp.url))
     local('rm -f %s' % fn)
 

@@ -12,7 +12,8 @@
  * @filter Template variables: 'us_template_vars:templates/widgets/search'
  */
 
-$layout = isset( $layout ) ? $layout : 'simple';
+// $layout = isset( $layout ) ? $layout : 'simple';
+$layout = 'simple'; // HACK: MBinfo
 
 $form_template_vars = array(
 	'type' => 'search',

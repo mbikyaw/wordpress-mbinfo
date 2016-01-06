@@ -196,6 +196,15 @@ def publish_mbinfo_pinfo():
 
 
 @task
+def publish_mbinfo_widgets():
+    """
+    Zip mbinfo-figure plugin for distribution
+    :return:
+    """
+    local('cd wordpress/wp-content/plugins; zip -q -X -x .git -r mbinfo-widgets.zip mbinfo-widgets')
+    local('mv wordpress/wp-content/plugins/mbinfo-widgets.zip ./')
+
+@task
 def publish_mbinfo_video():
     """
     Zip mbinfo-video plugin for distribution
@@ -264,6 +273,18 @@ def install_mbinfo_frontend():
 
 
 @task
+def install_mbinfo_widgets():
+    """
+    Install mbinfo-figure plugin
+    :return:
+    """
+    require('settings', provided_by=[prod, staging, dev])
+    with cd(env.path):
+        put('mbinfo-widgets.zip', 'mbinfo-widgets.zip')
+        run('wp plugin install mbinfo-widgets.zip --force --activate')
+
+
+@task
 def deploy():
     """
     Deploy source code.
@@ -273,6 +294,7 @@ def deploy():
     fns = ['wp-content/plugins/better-anchor-links/css/mwm-aal.css',
            'wp-content/themes/Zephyr/framework/templates/widgets/search.php',
            'wp-content/themes/Zephyr-child/functions.php',
+           'wp-content/themes/Zephyr-child/page-home.php',
            'wp-content/themes/Zephyr-child/page-topic-home.php',
            'wp-content/themes/Zephyr-child/page-figure-list.php',
            'wp-content/themes/Zephyr-child/page-protein.php',
